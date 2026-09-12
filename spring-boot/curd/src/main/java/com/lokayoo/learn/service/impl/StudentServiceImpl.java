@@ -6,14 +6,17 @@ import java.util.Map;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
-import lombok.RequiredArgsConstructor;
-
 import com.lokayoo.learn.dto.AddStudentReqDto;
 import com.lokayoo.learn.dto.StudentDto;
 import com.lokayoo.learn.entity.Student;
 import com.lokayoo.learn.repository.StudentRepository;
 import com.lokayoo.learn.service.StudentService;
 
+import lombok.RequiredArgsConstructor;
+
+/**
+ * Default implementation of the student business service.
+ */
 @Service
 @RequiredArgsConstructor
 public class StudentServiceImpl implements StudentService {
@@ -21,101 +24,119 @@ public class StudentServiceImpl implements StudentService {
     private final StudentRepository studentRepository;
     private final ModelMapper modelMapper;
 
+    /**
+     * Retrieves all students and converts entities to DTOs.
+     *
+     * @return list of student DTOs
+     */
     @Override
     public List<StudentDto> getAllStudents() {
-
-        List<Student> students = studentRepository.findAll();
-
-        return students.stream()
+        return studentRepository.findAll()
+                .stream()
                 .map(student -> modelMapper.map(student, StudentDto.class))
                 .toList();
     }
 
+    /**
+     * Retrieves one student by identifier.
+     *
+     * @param id student identifier
+     * @return matching student DTO
+     * @throws IllegalArgumentException if the student does not exist
+     */
     @Override
     public StudentDto getStudentById(Long id) {
-
-        Student student = studentRepository.findById(id)
-                .orElseThrow(() ->
-                        new IllegalArgumentException(
-                                "Student not found with id: " + id
-                        )
-                );
-
+        Student student = findStudentById(id);
         return modelMapper.map(student, StudentDto.class);
     }
 
+    /**
+     * Creates and persists a new student.
+     *
+     * @param request student creation data
+     * @return created student DTO
+     */
     @Override
-    public StudentDto createNewStudent(AddStudentReqDto addStudentReqDto) {
+    public StudentDto createNewStudent(AddStudentReqDto request) {
+        Student student = modelMapper.map(request, Student.class);
+        Student savedStudent = studentRepository.save(student);
 
-        Student student = modelMapper.map(addStudentReqDto, Student.class);
-
-        student = studentRepository.save(student);
-
-        return modelMapper.map(student, StudentDto.class);
+        return modelMapper.map(savedStudent, StudentDto.class);
     }
 
+    /**
+     * Deletes a student by identifier.
+     *
+     * @param id student identifier
+     * @throws IllegalArgumentException if the student does not exist
+     */
     @Override
     public void deleteStudentById(Long id) {
-
-        if (!studentRepository.existsById(id)) {
-            throw new IllegalArgumentException(
-                    "Student not found with id: " + id
-            );
-        }
-
+        findStudentById(id);
         studentRepository.deleteById(id);
     }
 
+    /**
+     * Replaces all editable fields of an existing student.
+     *
+     * @param id student identifier
+     * @param request replacement student data
+     * @return updated student DTO
+     */
     @Override
     public StudentDto updateStudent(
             Long id,
-            AddStudentReqDto addStudentReqDto) {
+            AddStudentReqDto request) {
 
-        Student existingStudent = studentRepository.findById(id)
-                .orElseThrow(() ->
-                        new IllegalArgumentException(
-                                "Student not found with id: " + id
-                        )
-                );
+        Student student = findStudentById(id);
 
-        existingStudent.setName(addStudentReqDto.getName());
-        existingStudent.setAge(addStudentReqDto.getAge());
-        existingStudent.setEmail(addStudentReqDto.getEmail());
+        student.setName(request.getName());
+        student.setAge(request.getAge());
+        student.setEmail(request.getEmail());
 
-        Student updatedStudent = studentRepository.save(existingStudent);
+        Student updatedStudent = studentRepository.save(student);
 
         return modelMapper.map(updatedStudent, StudentDto.class);
     }
 
+    /**
+     * Updates only the fields supplied by the client.
+     *
+     * @param id student identifier
+     * @param updates fields to update
+     * @return updated student DTO
+     */
     @Override
     public StudentDto patchStudent(
             Long id,
             Map<String, Object> updates) {
 
-        Student existingStudent = studentRepository.findById(id)
-                .orElseThrow(() ->
-                        new IllegalArgumentException(
-                                "Student not found with id: " + id
-                        )
-                );
+        Student student = findStudentById(id);
 
         updates.forEach((field, value) -> {
-
             switch (field) {
-                case "name" -> existingStudent.setName((String) value);
-
-                case "age" -> existingStudent.setAge((Integer) value);
-
-                case "email" -> existingStudent.setEmail((String) value);
-
+                case "name" -> student.setName((String) value);
+                case "age" -> student.setAge(((Number) value).intValue());
+                case "email" -> student.setEmail((String) value);
                 default -> throw new IllegalArgumentException(
-                        "Invalid field: " + field
-                );
+                        "Invalid student field: " + field);
             }
         });
 
-        Student updatedStudent = studentRepository.save(existingStudent);
+        Student updatedStudent = studentRepository.save(student);
 
         return modelMapper.map(updatedStudent, StudentDto.class);
+    }
+
+    /**
+     * Finds a student or throws an exception when it does not exist.
+     *
+     * @param id student identifier
+     * @return existing student entity
+     */
+    private Student findStudentById(Long id) {
+        return studentRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Student not found with id: " + id));
     }
 }
