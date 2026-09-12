@@ -15,71 +15,99 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import lombok.RequiredArgsConstructor;
-import jakarta.validation.Valid;
 import com.lokayoo.learn.dto.AddStudentReqDto;
 import com.lokayoo.learn.dto.StudentDto;
 import com.lokayoo.learn.service.StudentService;
 
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+
+/**
+ * REST controller that exposes CRUD endpoints for students.
+ */
 @RestController
-@RequiredArgsConstructor
 @RequestMapping("/students")
+@RequiredArgsConstructor
 public class StudentController {
 
     private final StudentService studentService;
 
+    /**
+     * Returns all students.
+     *
+     * @return HTTP 200 with all students
+     */
     @GetMapping
     public ResponseEntity<List<StudentDto>> getStudents() {
-
-        return ResponseEntity
-                .status(HttpStatus.OK)
-                .body(studentService.getAllStudents());
+        return ResponseEntity.ok(studentService.getAllStudents());
     }
 
+    /**
+     * Returns a student by its identifier.
+     *
+     * @param id student identifier
+     * @return HTTP 200 with the requested student
+     */
     @GetMapping("/{id}")
     public ResponseEntity<StudentDto> getStudentById(
             @PathVariable Long id) {
-
-        return ResponseEntity
-                .status(HttpStatus.OK)
-                .body(studentService.getStudentById(id));
+        return ResponseEntity.ok(studentService.getStudentById(id));
     }
 
+    /**
+     * Creates a new student.
+     *
+     * @param request student data
+     * @return HTTP 201 with the created student
+     */
     @PostMapping
     public ResponseEntity<StudentDto> createNewStudent(
-            @RequestBody @Valid AddStudentReqDto addStudentReqDto) {
-
+            @Valid @RequestBody AddStudentReqDto request) {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(studentService.createNewStudent(addStudentReqDto));
+                .body(studentService.createNewStudent(request));
     }
 
+    /**
+     * Deletes a student by its identifier.
+     *
+     * @param id student identifier
+     * @return HTTP 204 when deletion succeeds
+     */
     @DeleteMapping("/del/{id}")
     public ResponseEntity<Void> deleteStudent(
             @PathVariable Long id) {
-
         studentService.deleteStudentById(id);
-
-        return ResponseEntity
-                .status(HttpStatus.NO_CONTENT)
-                .build();
+        return ResponseEntity.noContent().build();
     }
 
+    /**
+     * Replaces all editable fields of an existing student.
+     *
+     * @param id student identifier
+     * @param request replacement student data
+     * @return HTTP 200 with the updated student
+     */
     @PutMapping("/put/{id}")
     public ResponseEntity<StudentDto> updateStudent(
             @PathVariable Long id,
-            @RequestBody AddStudentReqDto addStudentReqDto) {
-
-        return ResponseEntity
-                .ok(studentService.updateStudent(id, addStudentReqDto));
+            @Valid @RequestBody AddStudentReqDto request) {
+        return ResponseEntity.ok(
+                studentService.updateStudent(id, request));
     }
 
+    /**
+     * Updates only the fields supplied in the request body.
+     *
+     * @param id student identifier
+     * @param updates fields to update
+     * @return HTTP 200 with the updated student
+     */
     @PatchMapping("/patch/{id}")
     public ResponseEntity<StudentDto> patchStudent(
             @PathVariable Long id,
             @RequestBody Map<String, Object> updates) {
-
-        return ResponseEntity
-                .ok(studentService.patchStudent(id, updates));
+        return ResponseEntity.ok(
+                studentService.patchStudent(id, updates));
     }
 }
